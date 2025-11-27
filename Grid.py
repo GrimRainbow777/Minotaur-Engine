@@ -1,6 +1,5 @@
 import numpy as np
 import dearpygui.dearpygui as dpg
-from dearpygui.dearpygui import window
 
 
 class Cell:
