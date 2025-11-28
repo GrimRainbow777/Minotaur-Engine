@@ -3,7 +3,7 @@ from Grid import Grid
 
 #DEARPYGUI SPECIFIC
 WINDOW_NAME = "Minotaur Engine"
-WINDOW_SIZE = (600, 600)
+WINDOW_SIZE = (1000, 800)
 
 REG_FONT_PATH = "extra/Roboto-Light.ttf"
 ICO_PATH = "extra/minotaur-icon.ico"
@@ -49,6 +49,10 @@ with dpg.font_registry():
 
 dpg.bind_font(default_font)
 
+with dpg.theme() as no_padding_theme:
+    with dpg.theme_component(dpg.mvAll):
+        dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 0, 0, category=dpg.mvThemeCat_Core)
+
 # Create a Value Registry to hold the INITIAL_GLOBAL_VALUES_LIST variables
 with dpg.value_registry():
     for key, item in INITIAL_GLOBAL_VALUES_LIST.items():
@@ -65,7 +69,7 @@ with dpg.value_registry():
             dpg.add_bool_value(tag=key, default_value=item)
 
 # The main window where everything will be based
-with dpg.window(tag="main_window", menubar=False, no_collapse=True, no_close=True):
+with dpg.window(tag="main_window", menubar=False, no_collapse=True, no_close=True, no_scrollbar=True, no_scroll_with_mouse=True):
     with dpg.handler_registry():
         dpg.add_mouse_down_handler(button=dpg.mvMouseButton_Left, callback=lambda e: GRID.handle_grid_click("left"))
         dpg.add_mouse_release_handler(button=dpg.mvMouseButton_Left, callback=GRID.reset_drag_state)
@@ -135,7 +139,6 @@ with dpg.window(label="Advanced Grid Settings", modal=True, show=False, no_resiz
 
 # Set the primary window (ties it to the viewport) to the main window
 dpg.set_primary_window("main_window", True)
-dpg.configure_item("main_window", horizontal_scrollbar=True)
 dpg.set_viewport_resize_callback(GRID.on_resize)
 
 # THE 4 LINES BELOW MUST BE RUN FOR THE APPLICATION TO BE DISPLAYED!
