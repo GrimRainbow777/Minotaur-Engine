@@ -1,4 +1,5 @@
 import dearpygui.dearpygui as dpg
+
 from Grid import Grid
 
 #DEARPYGUI SPECIFIC
@@ -79,15 +80,17 @@ with dpg.window(tag="main_window", menubar=False, no_collapse=True, no_close=Tru
     with dpg.menu_bar(tag="main_menu_bar"):
         with dpg.menu(label = "Grid"):
             with dpg.menu(label = "Grid Size"):
-                dpg.add_menu_item(label = "10 x 10", callback=lambda e: GRID.reset_grid(10, 10))
-                dpg.add_menu_item(label = "15 x 15", callback=lambda e: GRID.reset_grid(15, 15))
-                dpg.add_menu_item(label = "25 x 25", callback=lambda e: GRID.reset_grid(25, 25))
-                dpg.add_menu_item(label = "50 x 50", callback=lambda e: GRID.reset_grid(50, 50))
+                dpg.add_menu_item(label="10 x 10", callback=lambda e: GRID.update_grid((10, 10)))
+                dpg.add_menu_item(label="15 x 15", callback=lambda e: GRID.update_grid((15, 15)))
+                dpg.add_menu_item(label="25 x 25", callback=lambda e: GRID.update_grid((25, 25)))
+                dpg.add_menu_item(label="50 x 50", callback=lambda e: GRID.update_grid((50, 50)))
             with dpg.menu(label = "Cell Size"):
-                dpg.add_menu_item(label = "10", callback=lambda e: GRID.reset_grid(cell_size=10))
-                dpg.add_menu_item(label = "15", callback=lambda e: GRID.reset_grid(cell_size=15))
-                dpg.add_menu_item(label = "20", callback=lambda e: GRID.reset_grid(cell_size=20))
-                dpg.add_menu_item(label = "25", callback=lambda e: GRID.reset_grid(cell_size=25))
+                dpg.add_menu_item(label="25", callback=lambda e: GRID.update_grid(cell_size=25))
+                dpg.add_menu_item(label="30", callback=lambda e: GRID.update_grid(cell_size=30))
+                dpg.add_menu_item(label="35", callback=lambda e: GRID.update_grid(cell_size=35))
+                dpg.add_menu_item(label="40", callback=lambda e: GRID.update_grid(cell_size=40))
+                dpg.add_menu_item(label="45", callback=lambda e: GRID.update_grid(cell_size=45))
+                dpg.add_menu_item(label="50", callback=lambda e: GRID.update_grid(cell_size=50))
 
             dpg.add_menu_item(label = "Advanced...", callback=lambda e: show_modal("advanced_grid_settings"))
         with dpg.menu(label = "Pathfinding"):
@@ -139,7 +142,7 @@ with dpg.window(label="Advanced Grid Settings", modal=True, show=False, no_resiz
 
 # Set the primary window (ties it to the viewport) to the main window
 dpg.set_primary_window("main_window", True)
-dpg.set_viewport_resize_callback(GRID.on_resize)
+dpg.set_viewport_resize_callback(GRID.update_grid_position)
 
 # THE 4 LINES BELOW MUST BE RUN FOR THE APPLICATION TO BE DISPLAYED!
 dpg.setup_dearpygui()

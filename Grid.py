@@ -1,5 +1,6 @@
-import numpy as np
 import dearpygui.dearpygui as dpg
+import numpy as np
+
 
 class Cell:
     def __init__(self, x, y, passable = True):
@@ -13,12 +14,14 @@ class Grid:
         self.cols = cols
         self.cell_size = cell_size
         self.line_thickness = 1.0
-        self.border_thickness = self.line_thickness + 2
+        self.border_thickness = self.line_thickness * 2
         self.width = self.cols * self.cell_size
         self.height = self.rows * self.cell_size
         self.default_cell_color = (0.0, 0.0, 0.0, 0.0)
-        self.impassable_color = (21.0, 22.0, 28.0, 255.0)
-        self.line_cell_color = (0.0, 0.0, 0.0, 255.0)
+        self.impassable_color = (255.0, 155.0, 28.0, 255.0)
+        self.line_cell_color = (255.0, 255.0, 255.0, 125.0)
+
+        self.grid_original_pos = None
 
         self.cells = np.empty((cols, rows), dtype=object)
         self.grid_centered = False
@@ -34,10 +37,10 @@ class Grid:
         self.rows = rows if rows is not None else self.rows
         self.cols = cols if cols is not None else self.cols
 
-        dpg.set_value("grid_size", (cols if cols is not None else self.cols, rows if rows is not None else self.rows))
+        dpg.set_value("grid_size", (self.cols, self.rows))
 
         self.cell_size = cell_size if cell_size is not None else self.cell_size
-        dpg.set_value("cell_size", cell_size if cell_size is not None else self.cell_size)
+        dpg.set_value("cell_size", self.cell_size)
         self.width = self.cols * self.cell_size
         self.height = self.rows * self.cell_size
         self.cells = np.empty((self.cols, self.rows), dtype=object)
@@ -59,15 +62,11 @@ class Grid:
         # If the grid doesn't exist (was deleted), stop immediately.
         if not dpg.does_item_exist("grid_wrapper"):
             return
-        elif not dpg.get_item_state("grid_wrapper")['focused']:
+        elif not dpg.get_item_state("grid_canvas")['hovered']:
             return
 
-        pos = dpg.get_mouse_pos()
+        pos = dpg.get_drawing_mouse_pos()
         x, y = pos[0], pos[1]
-
-        rect_min = dpg.get_item_pos("grid_canvas")
-        x = x - rect_min[0]
-        y = y - rect_min[1]
 
         col = int(x // self.cell_size)
         row = int(y // self.cell_size)
@@ -87,17 +86,18 @@ class Grid:
     def reset_drag_state(self):
         self.last_painted_cell = None
 
-    def display_grid(self, no_padding_theme = None):
+    def display_grid(self):
         if dpg.does_item_exist("grid_wrapper"):
             dpg.delete_item("grid_wrapper")
 
         # correct content region (not viewport!)
         content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height("main_window")
 
-        with dpg.child_window(tag="grid_wrapper", parent="main_window", horizontal_scrollbar=True, border=False, autosize_x=True, autosize_y=True):
+        with dpg.child_window(tag="grid_wrapper", parent="main_window", horizontal_scrollbar=True, border=False):
             with dpg.drawlist(tag="grid_canvas", width=self.width, height=self.height):
                 with dpg.draw_node(tag="grid_node"):
                     dpg.draw_rectangle(
+                        tag="grid_border",
                         pmin=(0, 0),
                         pmax=(self.width, self.height),
                         color=self.line_cell_color,
@@ -118,38 +118,95 @@ class Grid:
                                 fill=self.default_cell_color
                             )
 
-        dpg.bind_item_theme("grid_wrapper", no_padding_theme)
-
         # correct centering
-        if self.grid_centered:
+        if self.grid_centered and not self.width >= content_w and not self.height >= content_h:
             center_x = (content_w - self.width) // 2
             center_y = (content_h - self.height) // 2
-            dpg.set_item_pos("grid_wrapper", (center_x, center_y))
 
-    def on_resize(self, sender = None, app_data = None):
+            if center_x >= 0 and center_y >= 0:
+                dpg.set_item_pos("grid_wrapper", (center_x, center_y))
+            elif center_x >= 0 and not center_y >= 0:
+                dpg.set_item_pos("grid_wrapper", (center_x, self.grid_original_pos[1]))
+            elif not center_x >= 0 and center_y >= 0:
+                dpg.set_item_pos("grid_wrapper", (self.grid_original_pos[0], center_y))
+            else:
+                dpg.set_item_pos("grid_wrapper", self.grid_original_pos)
+
+    def update_grid(self, grid_size=None, cell_size=None, line_thickness=None, default_cell_color=None,
+                    line_cell_color=None, impassable_color=None, grid_centered=None):
+        if not dpg.does_item_exist("grid_wrapper"):
+            return
+
+        if self.grid_original_pos is None:
+            self.grid_original_pos = dpg.get_item_pos("grid_wrapper")
+
+        redraw_grid = (grid_size != [self.cols, self.rows, 0, 0]) if grid_size is not None else False
+        self.cols = grid_size[0] if grid_size is not None else self.cols
+        self.rows = grid_size[1] if grid_size is not None else self.rows
+        self.cell_size = cell_size if cell_size is not None else self.cell_size
+        self.line_thickness = line_thickness if line_thickness is not None else self.line_thickness
+        self.default_cell_color = default_cell_color if default_cell_color is not None else self.default_cell_color
+        self.line_cell_color = line_cell_color if line_cell_color is not None else self.line_cell_color
+        self.impassable_color = impassable_color if impassable_color is not None else self.impassable_color
+        self.grid_centered = grid_centered if grid_centered is not None else self.grid_centered
+        self.width = self.cols * self.cell_size
+        self.height = self.rows * self.cell_size
+        self.border_thickness = self.line_thickness + 2
+
+        dpg.set_value("grid_size", (self.cols, self.rows))
+        dpg.set_value("cell_size", self.cell_size)
+
+        if redraw_grid:
+            self.reset_grid()
+            return
+
+        dpg.configure_item("grid_canvas", width=self.width, height=self.height)
+        dpg.configure_item("grid_border", pmax=(self.width, self.height), color=self.line_cell_color,
+                           thickness=self.border_thickness, fill=self.default_cell_color)
+
+        for row in self.cells:
+            for cell in row:
+                xp = cell.x * self.cell_size
+                yp = cell.y * self.cell_size
+                dpg.configure_item(
+                    f"CELL_{cell.x}_{cell.y}",
+                    pmin=(xp, yp),
+                    pmax=(xp + self.cell_size, yp + self.cell_size),
+                    color=self.line_cell_color,
+                    thickness=self.line_thickness,
+                    fill=self.default_cell_color if cell.passable else self.impassable_color
+                )
+
+        self.update_grid_position()
+
+    def update_grid_position(self, sender=None, app_data=None):
         content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height("main_window")
         if self.grid_centered:
             center_x = (content_w - self.width) // 2
             center_y = (content_h - self.height) // 2
 
-            dpg.set_item_pos("grid_wrapper", (center_x, center_y))
+            if center_x >= 0 and center_y >= 0:
+                dpg.set_item_pos("grid_wrapper", (center_x, center_y))
+            elif center_x >= 0 and not center_y >= 0:
+                dpg.set_item_pos("grid_wrapper", (center_x, self.grid_original_pos[1]))
+            elif not center_x >= 0 and center_y >= 0:
+                dpg.set_item_pos("grid_wrapper", (self.grid_original_pos[0], center_y))
+            else:
+                dpg.set_item_pos("grid_wrapper", self.grid_original_pos)
+        else:
+            dpg.set_item_pos("grid_wrapper", self.grid_original_pos)
 
     def close_advanced_window(self, canceled: bool):
         dpg.configure_item("advanced_grid_settings", show=False)
 
         if not canceled:
-            new_grid_size = dpg.get_value("grid_size")
-
-            self.cols = new_grid_size[0]
-            self.rows = new_grid_size[1]
-            self.cell_size = dpg.get_value("cell_size")
-            self.line_thickness = dpg.get_value("line_thickness")
-            self.default_cell_color = dpg.get_value("cell_color")
-            self.line_cell_color = dpg.get_value("line_color")
-            self.impassable_color = dpg.get_value("impassable_color")
-            self.grid_centered = dpg.get_value("center_grid")
-
-            self.reset_grid()
+            self.update_grid(grid_size=dpg.get_value("grid_size"),
+                             cell_size=dpg.get_value("cell_size"),
+                             line_thickness=dpg.get_value("line_thickness"),
+                             default_cell_color=dpg.get_value("cell_color"),
+                             line_cell_color=dpg.get_value("line_color"),
+                             impassable_color=dpg.get_value("impassable_color"),
+                             grid_centered=dpg.get_value("center_grid"))
         else:
             dpg.set_value("grid_size", (self.cols, self.rows))
             dpg.set_value("cell_size", self.cell_size)
