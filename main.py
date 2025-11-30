@@ -5,6 +5,7 @@ from Grid import Grid
 #DEARPYGUI SPECIFIC
 WINDOW_NAME = "Minotaur Engine"
 WINDOW_SIZE = (1000, 800)
+MAIN_WINDOW_PADDING = 8
 
 REG_FONT_PATH = "extra/Roboto-Light.ttf"
 ICO_PATH = "extra/minotaur-icon.ico"
@@ -18,6 +19,7 @@ MAX_CELL_SIZE = 100
 MIN_LINE_THICKNESS = 1.0
 MAX_LINE_THICKNESS = 5.0
 
+
 # list of global values tied in the DearPyGui Value Registry that we can you so synchronize all values in the fields on the visual side
 INITIAL_GLOBAL_VALUES_LIST = {
     "grid_size": (GRID.cols, GRID.rows),
@@ -27,6 +29,7 @@ INITIAL_GLOBAL_VALUES_LIST = {
     "cell_color": GRID.default_cell_color,
     "impassable_color": GRID.impassable_color,
     "center_grid": False,
+    "main_window_padding": MAIN_WINDOW_PADDING,
 }
 
 def show_modal(modal):
@@ -50,9 +53,10 @@ with dpg.font_registry():
 
 dpg.bind_font(default_font)
 
-with dpg.theme() as no_padding_theme:
+with dpg.theme() as main_window_theme:
     with dpg.theme_component(dpg.mvAll):
-        dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 0, 0, category=dpg.mvThemeCat_Core)
+        dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, MAIN_WINDOW_PADDING, MAIN_WINDOW_PADDING,
+                            category=dpg.mvThemeCat_Core)
 
 # Create a Value Registry to hold the INITIAL_GLOBAL_VALUES_LIST variables
 with dpg.value_registry():
@@ -79,11 +83,12 @@ with dpg.window(tag="main_window", menubar=False, no_collapse=True, no_close=Tru
 
     with dpg.menu_bar(tag="main_menu_bar"):
         with dpg.menu(label = "Grid"):
+            dpg.add_menu_item(label="Clear Grid", callback=lambda e: GRID.update_grid(clear=True))
             with dpg.menu(label = "Grid Size"):
-                dpg.add_menu_item(label="10 x 10", callback=lambda e: GRID.update_grid((10, 10)))
-                dpg.add_menu_item(label="15 x 15", callback=lambda e: GRID.update_grid((15, 15)))
-                dpg.add_menu_item(label="25 x 25", callback=lambda e: GRID.update_grid((25, 25)))
-                dpg.add_menu_item(label="50 x 50", callback=lambda e: GRID.update_grid((50, 50)))
+                dpg.add_menu_item(label="10 x 10", callback=lambda e: GRID.update_grid(grid_size=(10, 10)))
+                dpg.add_menu_item(label="15 x 15", callback=lambda e: GRID.update_grid(grid_size=(15, 15)))
+                dpg.add_menu_item(label="25 x 25", callback=lambda e: GRID.update_grid(grid_size=(25, 25)))
+                dpg.add_menu_item(label="50 x 50", callback=lambda e: GRID.update_grid(grid_size=(50, 50)))
             with dpg.menu(label = "Cell Size"):
                 dpg.add_menu_item(label="25", callback=lambda e: GRID.update_grid(cell_size=25))
                 dpg.add_menu_item(label="30", callback=lambda e: GRID.update_grid(cell_size=30))
@@ -91,6 +96,12 @@ with dpg.window(tag="main_window", menubar=False, no_collapse=True, no_close=Tru
                 dpg.add_menu_item(label="40", callback=lambda e: GRID.update_grid(cell_size=40))
                 dpg.add_menu_item(label="45", callback=lambda e: GRID.update_grid(cell_size=45))
                 dpg.add_menu_item(label="50", callback=lambda e: GRID.update_grid(cell_size=50))
+            with dpg.menu(label="Line Thickness"):
+                dpg.add_menu_item(label="1", callback=lambda e: GRID.update_grid(line_thickness=1))
+                dpg.add_menu_item(label="2", callback=lambda e: GRID.update_grid(line_thickness=2))
+                dpg.add_menu_item(label="3", callback=lambda e: GRID.update_grid(line_thickness=3))
+                dpg.add_menu_item(label="4", callback=lambda e: GRID.update_grid(line_thickness=4))
+                dpg.add_menu_item(label="5", callback=lambda e: GRID.update_grid(line_thickness=5))
 
             dpg.add_menu_item(label = "Advanced...", callback=lambda e: show_modal("advanced_grid_settings"))
         with dpg.menu(label = "Pathfinding"):
@@ -116,7 +127,7 @@ with dpg.window(label="Advanced Grid Settings", modal=True, show=False, no_resiz
         with dpg.table_row():
             dpg.add_text("Line Thickness:")
             dpg.add_drag_float(width=-1, min_value=MIN_LINE_THICKNESS, max_value=MAX_LINE_THICKNESS,
-                             clamped=True, label="", source="line_thickness", speed=0.1)
+                               clamped=True, label="", source="line_thickness", speed=0.01)
 
         with dpg.table_row():
             dpg.add_text("Cell Color:")
@@ -134,15 +145,18 @@ with dpg.window(label="Advanced Grid Settings", modal=True, show=False, no_resiz
             dpg.add_text("Center Grid:")
             dpg.add_checkbox(label="", source="center_grid")
 
-    dpg.add_separator()
+    # dpg.add_separator()
 
     with dpg.group(horizontal=True):
         dpg.add_button(label="Cancel", width=130, callback=lambda e: GRID.close_advanced_window(True))
         dpg.add_button(label="Apply", width=130, callback=lambda e: GRID.close_advanced_window(False))
 
+    # dpg.add_separator()
+
 # Set the primary window (ties it to the viewport) to the main window
 dpg.set_primary_window("main_window", True)
 dpg.set_viewport_resize_callback(GRID.update_grid_position)
+dpg.bind_item_theme("main_window", main_window_theme)
 
 # THE 4 LINES BELOW MUST BE RUN FOR THE APPLICATION TO BE DISPLAYED!
 dpg.setup_dearpygui()

@@ -37,10 +37,7 @@ class Grid:
         self.rows = rows if rows is not None else self.rows
         self.cols = cols if cols is not None else self.cols
 
-        dpg.set_value("grid_size", (self.cols, self.rows))
-
         self.cell_size = cell_size if cell_size is not None else self.cell_size
-        dpg.set_value("cell_size", self.cell_size)
         self.width = self.cols * self.cell_size
         self.height = self.rows * self.cell_size
         self.cells = np.empty((self.cols, self.rows), dtype=object)
@@ -87,13 +84,19 @@ class Grid:
         self.last_painted_cell = None
 
     def display_grid(self):
+        if self.grid_original_pos is None:
+            self.grid_original_pos = (dpg.get_value("main_window_padding"),
+                                      dpg.get_value("main_window_padding") + dpg.get_item_height("main_menu_bar"))
+
         if dpg.does_item_exist("grid_wrapper"):
             dpg.delete_item("grid_wrapper")
 
         # correct content region (not viewport!)
-        content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height("main_window")
+        content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height(
+            "main_window") + dpg.get_item_height("main_menu_bar")
 
-        with dpg.child_window(tag="grid_wrapper", parent="main_window", horizontal_scrollbar=True, border=False):
+        with dpg.child_window(tag="grid_wrapper", parent="main_window", horizontal_scrollbar=True, border=False,
+                              pos=self.grid_original_pos):
             with dpg.drawlist(tag="grid_canvas", width=self.width, height=self.height):
                 with dpg.draw_node(tag="grid_node"):
                     dpg.draw_rectangle(
@@ -133,14 +136,11 @@ class Grid:
                 dpg.set_item_pos("grid_wrapper", self.grid_original_pos)
 
     def update_grid(self, grid_size=None, cell_size=None, line_thickness=None, default_cell_color=None,
-                    line_cell_color=None, impassable_color=None, grid_centered=None):
+                    line_cell_color=None, impassable_color=None, grid_centered=None, clear=False):
         if not dpg.does_item_exist("grid_wrapper"):
             return
 
-        if self.grid_original_pos is None:
-            self.grid_original_pos = dpg.get_item_pos("grid_wrapper")
-
-        redraw_grid = (grid_size != [self.cols, self.rows, 0, 0]) if grid_size is not None else False
+        redraw_grid = ((grid_size[0], grid_size[1]) != (self.cols, self.rows)) if grid_size is not None else False
         self.cols = grid_size[0] if grid_size is not None else self.cols
         self.rows = grid_size[1] if grid_size is not None else self.rows
         self.cell_size = cell_size if cell_size is not None else self.cell_size
@@ -151,10 +151,11 @@ class Grid:
         self.grid_centered = grid_centered if grid_centered is not None else self.grid_centered
         self.width = self.cols * self.cell_size
         self.height = self.rows * self.cell_size
-        self.border_thickness = self.line_thickness + 2
+        self.border_thickness = self.line_thickness * 2
 
         dpg.set_value("grid_size", (self.cols, self.rows))
         dpg.set_value("cell_size", self.cell_size)
+        dpg.set_value("line_thickness", self.line_thickness)
 
         if redraw_grid:
             self.reset_grid()
@@ -168,6 +169,7 @@ class Grid:
             for cell in row:
                 xp = cell.x * self.cell_size
                 yp = cell.y * self.cell_size
+                cell.passable = True if clear else cell.passable
                 dpg.configure_item(
                     f"CELL_{cell.x}_{cell.y}",
                     pmin=(xp, yp),
@@ -180,7 +182,8 @@ class Grid:
         self.update_grid_position()
 
     def update_grid_position(self, sender=None, app_data=None):
-        content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height("main_window")
+        content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height(
+            "main_window") + dpg.get_item_height("main_menu_bar")
         if self.grid_centered:
             center_x = (content_w - self.width) // 2
             center_y = (content_h - self.height) // 2
@@ -215,5 +218,3 @@ class Grid:
             dpg.set_value("line_color", self.line_cell_color)
             dpg.set_value("impassable_color", self.impassable_color)
             dpg.set_value("center_grid", self.grid_centered)
-
-
