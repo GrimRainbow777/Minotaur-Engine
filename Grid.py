@@ -3,10 +3,17 @@ import numpy as np
 
 
 class Cell:
-    def __init__(self, x, y, passable = True):
+    def __init__(self, x, y, passable=True, is_start=False, is_goal=False):
         self.x = x
         self.y = y
+        self.is_start = is_start
+        self.is_goal = is_goal
         self.passable = passable
+
+
+def get_cell_tag(x, y):
+    return f"CELL_{x}_{y}"
+
 
 class Grid:
     def __init__(self, rows: int, cols: int, cell_size: int = 50):
@@ -54,6 +61,14 @@ class Grid:
             dpg.delete_item("grid_wrapper")
         self.display_grid()
 
+    def get_cell_from_pos(self, x, y):
+        col = int(x // self.cell_size)
+        row = int(y // self.cell_size)
+
+        if 0 <= col < self.cols and 0 <= row < self.rows:
+            return self.cells[col][row]
+        return None
+
     def handle_grid_click(self, type_of_click):
         # SAFETY CHECK:
         # If the grid doesn't exist (was deleted), stop immediately.
@@ -63,19 +78,17 @@ class Grid:
             return
 
         pos = dpg.get_drawing_mouse_pos()
-        x, y = pos[0], pos[1]
+        cell = self.get_cell_from_pos(pos[0], pos[1])
 
-        col = int(x // self.cell_size)
-        row = int(y // self.cell_size)
-
-        cell_tag = f"CELL_{col}_{row}"
-        if 0 <= col < self.cols and 0 <= row < self.rows and cell_tag != self.last_painted_cell:
+        cell_tag = get_cell_tag(cell.x, cell.y)
+        if cell and cell_tag != self.last_painted_cell:
             # print(f"Clicked Cell: Row={row}, Col={col} (Tag: {cell_tag}")
-            if self.cells[col][row].passable and type_of_click == "left":
-                self.cells[col][row].passable = False
+            if cell.is_start or cell.is_goal: return
+            if cell.passable and type_of_click == "left":
+                cell.passable = False
                 dpg.configure_item(cell_tag, fill=self.impassable_color)
             elif type_of_click == "right":
-                self.cells[col][row].passable = True
+                cell.passable = True
                 dpg.configure_item(cell_tag, fill=self.default_cell_color)
 
             self.last_painted_cell = cell_tag
@@ -113,7 +126,7 @@ class Grid:
                             xp = x * self.cell_size
                             yp = y * self.cell_size
                             dpg.draw_rectangle(
-                                tag=f"CELL_{x}_{y}",
+                                tag=get_cell_tag(x, y),
                                 pmin=(xp, yp),
                                 pmax=(xp + self.cell_size, yp + self.cell_size),
                                 color=self.line_cell_color,
@@ -171,7 +184,7 @@ class Grid:
                 yp = cell.y * self.cell_size
                 cell.passable = True if clear else cell.passable
                 dpg.configure_item(
-                    f"CELL_{cell.x}_{cell.y}",
+                    get_cell_tag(cell.x, cell.y),
                     pmin=(xp, yp),
                     pmax=(xp + self.cell_size, yp + self.cell_size),
                     color=self.line_cell_color,

@@ -1,6 +1,7 @@
 import dearpygui.dearpygui as dpg
 
 from Grid import Grid
+from PathfindingManager import PathfindingManager
 
 #DEARPYGUI SPECIFIC
 WINDOW_NAME = "Minotaur Engine"
@@ -18,6 +19,9 @@ MIN_CELL_SIZE = 5
 MAX_CELL_SIZE = 100
 MIN_LINE_THICKNESS = 1.0
 MAX_LINE_THICKNESS = 5.0
+
+# PATHFINDING SPECIFIC
+PATHFINDING_MANAGER = PathfindingManager(GRID)
 
 
 # list of global values tied in the DearPyGui Value Registry that we can you so synchronize all values in the fields on the visual side
@@ -43,9 +47,21 @@ def show_modal(modal):
 
     dpg.configure_item(modal, pos=(pos_x, pos_y), show=True)
 
+
+def on_click(type_of_click: str):
+    if PATHFINDING_MANAGER.setting_start:
+        pos = dpg.get_drawing_mouse_pos()
+        PATHFINDING_MANAGER.set_start_cell(pos[0], pos[1])
+    elif PATHFINDING_MANAGER.setting_goal:
+        pos = dpg.get_drawing_mouse_pos()
+        PATHFINDING_MANAGER.set_goal_cell(pos[0], pos[1])
+    else:
+        GRID.handle_grid_click(type_of_click)
+
 # Initialize the viewport to start adding windows and content
 dpg.create_context()
-dpg.create_viewport(title=WINDOW_NAME, width=WINDOW_SIZE[0], height=WINDOW_SIZE[1], small_icon="extra/minotaur-icon.ico")
+dpg.create_viewport(title=WINDOW_NAME, width=WINDOW_SIZE[0], height=WINDOW_SIZE[1], small_icon=ICO_PATH,
+                    large_icon=ICO_PATH)
 
 # Create a font registry
 with dpg.font_registry():
@@ -76,10 +92,12 @@ with dpg.value_registry():
 # The main window where everything will be based
 with dpg.window(tag="main_window", menubar=False, no_collapse=True, no_close=True, no_scrollbar=True, no_scroll_with_mouse=True):
     with dpg.handler_registry():
-        dpg.add_mouse_down_handler(button=dpg.mvMouseButton_Left, callback=lambda e: GRID.handle_grid_click("left"))
+        dpg.add_mouse_down_handler(button=dpg.mvMouseButton_Left, callback=lambda e: on_click("left"))
         dpg.add_mouse_release_handler(button=dpg.mvMouseButton_Left, callback=GRID.reset_drag_state)
-        dpg.add_mouse_down_handler(button=dpg.mvMouseButton_Right, callback=lambda e: GRID.handle_grid_click("right"))
+        dpg.add_mouse_down_handler(button=dpg.mvMouseButton_Right, callback=lambda e: on_click("right"))
         dpg.add_mouse_release_handler(button=dpg.mvMouseButton_Right, callback=GRID.reset_drag_state)
+    with dpg.handler_registry(tag="pathfinding_registry", show=False):
+        dpg.add_mouse_move_handler(callback=PATHFINDING_MANAGER.mouse_visual_movement)
 
     with dpg.menu_bar(tag="main_menu_bar"):
         with dpg.menu(label = "Grid"):
@@ -105,8 +123,8 @@ with dpg.window(tag="main_window", menubar=False, no_collapse=True, no_close=Tru
 
             dpg.add_menu_item(label = "Advanced...", callback=lambda e: show_modal("advanced_grid_settings"))
         with dpg.menu(label = "Pathfinding"):
-            dpg.add_menu_item(label = "Set Start Cell")
-            dpg.add_menu_item(label = "Set End Cell")
+            dpg.add_menu_item(label="Set Start Cell", callback=PATHFINDING_MANAGER.on_setting_start)
+            dpg.add_menu_item(label="Set End Cell", callback=PATHFINDING_MANAGER.on_setting_goal)
 
 # The Advanced Grid Settings window where you can go more in-depth with customizing the grid
 with dpg.window(label="Advanced Grid Settings", modal=True, show=False, no_resize=True, tag="advanced_grid_settings", no_close=True):
