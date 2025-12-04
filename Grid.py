@@ -135,18 +135,7 @@ class Grid:
                             )
 
         # correct centering
-        if self.grid_centered and not self.width >= content_w and not self.height >= content_h:
-            center_x = (content_w - self.width) // 2
-            center_y = (content_h - self.height) // 2
-
-            if center_x >= 0 and center_y >= 0:
-                dpg.set_item_pos("grid_wrapper", (center_x, center_y))
-            elif center_x >= 0 and not center_y >= 0:
-                dpg.set_item_pos("grid_wrapper", (center_x, self.grid_original_pos[1]))
-            elif not center_x >= 0 and center_y >= 0:
-                dpg.set_item_pos("grid_wrapper", (self.grid_original_pos[0], center_y))
-            else:
-                dpg.set_item_pos("grid_wrapper", self.grid_original_pos)
+        self.update_grid_position()
 
     def update_grid(self, grid_size=None, cell_size=None, line_thickness=None, default_cell_color=None,
                     line_cell_color=None, impassable_color=None, grid_centered=None, clear=False):
@@ -195,18 +184,19 @@ class Grid:
         self.update_grid_position()
 
     def update_grid_position(self, sender=None, app_data=None):
+        main_menu_bar_h = dpg.get_item_height("main_menu_bar")
         content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height(
-            "main_window") + dpg.get_item_height("main_menu_bar")
+            "main_window") - main_menu_bar_h
         if self.grid_centered:
             center_x = (content_w - self.width) // 2
             center_y = (content_h - self.height) // 2
 
             if center_x >= 0 and center_y >= 0:
-                dpg.set_item_pos("grid_wrapper", (center_x, center_y))
+                dpg.set_item_pos("grid_wrapper", (center_x, center_y + main_menu_bar_h))
             elif center_x >= 0 and not center_y >= 0:
                 dpg.set_item_pos("grid_wrapper", (center_x, self.grid_original_pos[1]))
             elif not center_x >= 0 and center_y >= 0:
-                dpg.set_item_pos("grid_wrapper", (self.grid_original_pos[0], center_y))
+                dpg.set_item_pos("grid_wrapper", (self.grid_original_pos[0], center_y + main_menu_bar_h))
             else:
                 dpg.set_item_pos("grid_wrapper", self.grid_original_pos)
         else:
