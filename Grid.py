@@ -104,10 +104,6 @@ class Grid:
         if dpg.does_item_exist("grid_wrapper"):
             dpg.delete_item("grid_wrapper")
 
-        # correct content region (not viewport!)
-        content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height(
-            "main_window") + dpg.get_item_height("main_menu_bar")
-
         with dpg.child_window(tag="grid_wrapper", parent="main_window", horizontal_scrollbar=True, border=False,
                               pos=self.grid_original_pos):
             with dpg.drawlist(tag="grid_canvas", width=self.width, height=self.height):
@@ -183,7 +179,7 @@ class Grid:
 
         self.update_grid_position()
 
-    def update_grid_position(self, sender=None, app_data=None):
+    def update_grid_position(self):
         main_menu_bar_h = dpg.get_item_height("main_menu_bar")
         content_w, content_h = dpg.get_item_width("main_window"), dpg.get_item_height(
             "main_window") - main_menu_bar_h
